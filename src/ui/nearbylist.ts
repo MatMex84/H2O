@@ -55,8 +55,8 @@ export class NearbyDrawer {
       <button class="hydrant-row" data-id="${h.id}">
         <span class="status-dot ${statusClass(h.stato)}"></span>
         <span class="info">
-          <div class="addr">#${escapeHtml(h.id)} · ${escapeHtml(h.indirizzo ?? h.localita ?? 'Indirizzo non disponibile')}</div>
-          <div class="meta">${escapeHtml([h.comune, h.provincia].filter(Boolean).join(', ') || '—')}</div>
+          <div class="addr">${escapeHtml(h.indirizzo ?? h.localita ?? 'Indirizzo non disponibile')}</div>
+          <div class="meta">${escapeHtml(h.comune ? (h.provincia ? `${h.comune} (${h.provincia})` : h.comune) : '—')}</div>
         </span>
         <span class="dist">${Number.isFinite(h.distanceMeters) ? formatDistance(h.distanceMeters) : '—'}</span>
       </button>`

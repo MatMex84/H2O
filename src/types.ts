@@ -44,6 +44,14 @@ export interface UserPosition {
   timestamp: number;
 }
 
+/** Nome da mostrare per un idrante nell'interfaccia: via/localita e comune
+ *  (provincia tra parentesi) — mai il codice numerico identificativo. */
+export function hydrantDisplayName(h: Pick<Hydrant, 'indirizzo' | 'localita' | 'comune' | 'provincia'>): string {
+  const via = h.indirizzo ?? h.localita ?? 'Indirizzo non disponibile';
+  const comune = h.comune ? (h.provincia ? `${h.comune} (${h.provincia})` : h.comune) : null;
+  return comune ? `${via}, ${comune}` : via;
+}
+
 export const STATO_LABEL: Record<StatoIdrante, string> = {
   attivo: 'Attivo / Funzionante',
   da_verificare: 'Pressione ridotta / Da verificare',

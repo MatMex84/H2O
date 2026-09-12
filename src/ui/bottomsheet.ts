@@ -1,5 +1,5 @@
 import type { Hydrant, StatoIdrante } from '../types';
-import { STATO_LABEL } from '../types';
+import { STATO_LABEL, hydrantDisplayName } from '../types';
 import { formatDistance, bearingToCompass } from '../geo/distance';
 import { NAV_APPS, defaultNavApp, openNavigation, type NavApp } from '../geo/navigate';
 
@@ -53,7 +53,7 @@ export class BottomSheet {
       <div class="sheet-handle"></div>
       <div class="sheet-body">
         <div class="sheet-header">
-          <span class="sheet-id">#${escapeHtml(hydrant.id)}</span>
+          <span class="sheet-title">${escapeHtml(hydrantDisplayName(hydrant))}</span>
           <span class="badge ${hydrant.stato}">${STATO_LABEL[hydrant.stato]}</span>
         </div>
         <div class="sheet-distance">${distanceLine}</div>
