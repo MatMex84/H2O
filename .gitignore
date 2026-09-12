@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dev-dist/
+*.tsbuildinfo
+
+# Cartella di estrazione intermedia creata da `npm run convert-data`
+# (rigenerabile in qualsiasi momento dal file .zip sorgente)
+_data_src/
+
+# Dataset generato (pesante, rigenerabile con `npm run convert-data`)
+public/data/idranti.geojson
+
+# Basemap offline opzionale (l'operatore la copia manualmente, vedi README)
+public/data/basemap.pmtiles
+public/data/basemap-style.json
+
+.DS_Store
+Thumbs.db
