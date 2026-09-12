@@ -56,8 +56,8 @@ async function existsOnServer(url: string): Promise<boolean> {
  */
 export async function resolveBasemapStyle(): Promise<StyleSpecification | string> {
   registerPmtilesProtocol();
-  const hasPmtiles = await existsOnServer('/data/basemap.pmtiles');
-  const hasStyle = hasPmtiles && (await existsOnServer('/data/basemap-style.json'));
-  if (hasStyle) return '/data/basemap-style.json';
+  const hasPmtiles = await existsOnServer(`${import.meta.env.BASE_URL}data/basemap.pmtiles`);
+  const hasStyle = hasPmtiles && (await existsOnServer(`${import.meta.env.BASE_URL}data/basemap-style.json`));
+  if (hasStyle) return `${import.meta.env.BASE_URL}data/basemap-style.json`;
   return RASTER_FALLBACK_STYLE;
 }

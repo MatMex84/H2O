@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  base: '/H2O/',
   server: { host: true, port: 5173 },
   preview: { host: true, port: 4173 },
   plugins: [
@@ -16,8 +17,8 @@ export default defineConfig({
         background_color: '#0b3d5c',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
-        scope: '/',
+        start_url: '/H2O/',
+        scope: '/H2O/',
         lang: 'it',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },

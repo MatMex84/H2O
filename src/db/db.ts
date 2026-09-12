@@ -71,7 +71,7 @@ export async function ensureSeeded(onProgress?: (p: SeedProgress) => void): Prom
     return count;
   }
 
-  const res = await fetch('/data/idranti.geojson');
+  const res = await fetch(`${import.meta.env.BASE_URL}data/idranti.geojson`);
   if (!res.ok) throw new Error(`Impossibile caricare il dataset locale (${res.status})`);
   const geojson = await res.json();
   const features: any[] = geojson.features ?? [];
