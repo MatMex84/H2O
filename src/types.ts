@@ -21,6 +21,16 @@ export interface Hydrant {
   elicottero: boolean;
   pescaggio: boolean;
   note: string | null;
+  /** Campi aggiuntivi dei "presidi antincendio AIB" (risorse idriche censite a
+   *  livello provinciale, non solo idranti stradali): valorizzati solo per
+   *  quel dataset, null per gli idranti del dataset nazionale VVF. */
+  proprietario: string | null;
+  custodia: string | null;
+  referente: string | null;
+  contatto: string | null;
+  provvedimento: string | null;
+  diametroTubazioneMm: number | null;
+  datasetOrigine: string | null;
 }
 
 /** Modifica locale (offline) fatta da un operatore su un idrante: sovrascrive stato/note. */

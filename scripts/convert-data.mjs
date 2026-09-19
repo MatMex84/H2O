@@ -1,7 +1,10 @@
 // Converte il dataset sorgente CSV (Approvvigionamenti Idrici VVF) in un
 // GeoJSON normalizzato pronto per essere caricato offline dalla PWA.
+// Unisce anche il censimento provinciale "Presidi Antincendio AIB" (laghi
+// artificiali, serbatoi, vasche, ecc. oltre ai soli idranti stradali).
 //
 // Input:  Approvvigionamenti_Idrici_VVF_Idranti.zip (nella root del progetto)
+//         Presidi_Antincendio_AIB_2026.xlsx (nella root del progetto, opzionale)
 // Output: public/data/idranti.geojson
 //
 // Uso: npm run convert-data
@@ -10,12 +13,14 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import * as XLSX from 'xlsx';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const ZIP_PATH = path.join(ROOT, 'Approvvigionamenti_Idrici_VVF_Idranti.zip');
 const EXTRACT_DIR = path.join(ROOT, '_data_src');
 const OUT_PATH = path.join(ROOT, 'public', 'data', 'idranti.geojson');
+const AIB_XLSX_PATH = path.join(ROOT, 'Presidi_Antincendio_AIB_2026.xlsx');
 
 function ensureExtracted() {
   if (fs.existsSync(EXTRACT_DIR)) return;
@@ -130,6 +135,78 @@ function cleanStr(raw) {
   return v === '' || v === '-' ? null : v;
 }
 
+function formatDataItaliana(d) {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/**
+ * Legge il censimento provinciale "Presidi Antincendio AIB" (foglio "Dati GIS"
+ * di Presidi_Antincendio_AIB_2026.xlsx, se presente) e lo converte in feature
+ * GeoJSON con lo stesso schema a chiavi corte del dataset nazionale. Copre
+ * risorse idriche più ampie dei soli idranti stradali (laghi artificiali,
+ * serbatoi, vasche, stazioni di pompaggio...), da qui campi propri
+ * (proprietario/custodia/referente/contatto/provvedimento/diametro) assenti
+ * nel dataset VVF nazionale.
+ */
+function buildAibFeatures() {
+  if (!fs.existsSync(AIB_XLSX_PATH)) return [];
+
+  const buf = fs.readFileSync(AIB_XLSX_PATH);
+  const wb = XLSX.read(buf, { type: 'buffer', cellDates: true });
+  const sheet = wb.Sheets['Dati GIS'];
+  if (!sheet) {
+    console.warn('Presidi AIB: foglio "Dati GIS" non trovato, salto l\'unione.');
+    return [];
+  }
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+  const features = [];
+  let skipped = 0;
+  for (const row of rows) {
+    const lon = toNumberOrNull(row.longitudine_wgs84);
+    const lat = toNumberOrNull(row.latitudine_wgs84);
+    if (lon == null || lat == null) {
+      skipped++;
+      continue;
+    }
+
+    const id = cleanStr(row.id) ?? `AIB-${features.length + 1}`;
+    const indirizzo = cleanStr(row.denominazione) ?? cleanStr(row.localita);
+    const noteParti = [
+      row.data_controllo instanceof Date ? `Controllato il ${formatDataItaliana(row.data_controllo)}` : null,
+      cleanStr(row.note_estrazione)
+    ].filter(Boolean);
+
+    const props = {};
+    props.i = id;
+    if (cleanStr(row.comune)) props.c = cleanStr(row.comune);
+    props.p = 'BN';
+    props.r = 'Campania';
+    if (cleanStr(row.localita)) props.l = cleanStr(row.localita);
+    if (indirizzo) props.a = indirizzo;
+    props.t = cleanStr(row.tipologia_presidio) ?? 'Non specificato';
+    if (cleanStr(row.proprietario)) props.pv = cleanStr(row.proprietario);
+    if (cleanStr(row.custodia)) props.cu = cleanStr(row.custodia);
+    if (cleanStr(row.referente)) props.rf = cleanStr(row.referente);
+    if (cleanStr(row.contatto)) props.ct = cleanStr(row.contatto);
+    if (cleanStr(row.provvedimento_piano)) props.pd = cleanStr(row.provvedimento_piano);
+    const diametro = toNumberOrNull(row.diametro_tubazione_mm);
+    if (diametro != null) props.dm = diametro;
+    if (noteParti.length > 0) props.n = noteParti.join(' — ');
+    props.ds = 'aib_bn';
+
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [Math.round(lon * 1e5) / 1e5, Math.round(lat * 1e5) / 1e5] },
+      properties: props
+    });
+  }
+
+  console.log(`Presidi AIB (provincia BN): ${features.length} punti letti, ${skipped} scartati per coordinate mancanti.`);
+  return features;
+}
+
 async function main() {
   if (!fs.existsSync(ZIP_PATH)) {
     console.error(`File sorgente non trovato: ${ZIP_PATH}`);
@@ -219,6 +296,9 @@ async function main() {
     kept++;
   }
 
+  const aibFeatures = buildAibFeatures();
+  features.push(...aibFeatures);
+
   const fc = { type: 'FeatureCollection', features };
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(fc));
@@ -227,6 +307,8 @@ async function main() {
   console.log(`Righe totali: ${total}`);
   console.log(`Scartate per coordinate mancanti/non valide: ${skippedCoords}`);
   console.log(`Idranti scritti: ${kept}`);
+  console.log(`Presidi AIB uniti: ${aibFeatures.length}`);
+  console.log(`Totale punti in output: ${features.length}`);
   console.log(`Output: ${OUT_PATH} (${sizeMb} MB)`);
 }
 

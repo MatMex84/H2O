@@ -7,7 +7,7 @@ const STORE_HYDRANTS = 'hydrants';
 const STORE_META = 'meta';
 
 /** Bump quando cambia lo schema del dataset sorgente (public/data/idranti.geojson). */
-const SEED_VERSION = 'idranti-v1';
+const SEED_VERSION = 'idranti-v2';
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
@@ -55,7 +55,14 @@ function expandHydrant(p: Record<string, any>, lon: number, lat: number): Hydran
     canadair: p.cn === 1,
     elicottero: p.el === 1,
     pescaggio: p.ps === 1,
-    note: p.n ?? null
+    note: p.n ?? null,
+    proprietario: p.pv ?? null,
+    custodia: p.cu ?? null,
+    referente: p.rf ?? null,
+    contatto: p.ct ?? null,
+    provvedimento: p.pd ?? null,
+    diametroTubazioneMm: p.dm ?? null,
+    datasetOrigine: p.ds ?? null
   };
 }
 

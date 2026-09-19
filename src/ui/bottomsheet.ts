@@ -48,6 +48,15 @@ export class BottomSheet {
       ? `${formatDistance(distanceMeters)} ${bearingDeg != null ? `· direzione ${bearingToCompass(bearingDeg)}` : ''} in linea d'aria`
       : 'Posizione GPS non disponibile';
 
+    const hasPresidioInfo = [
+      hydrant.proprietario,
+      hydrant.custodia,
+      hydrant.referente,
+      hydrant.contatto,
+      hydrant.provvedimento,
+      hydrant.diametroTubazioneMm
+    ].some((v) => v != null);
+
     this.el.innerHTML = `
       <button class="sheet-close" data-action="close" aria-label="Chiudi">✕</button>
       <div class="sheet-handle"></div>
@@ -73,6 +82,16 @@ export class BottomSheet {
           ${fieldHtml('Indirizzo', hydrant.indirizzo, true)}
           ${fieldHtml('Note di accesso', hydrant.note, true)}
         </div>
+
+        ${hasPresidioInfo ? `
+        <div class="section-title">Dati presidio (censimento AIB)</div>
+        <div class="field-grid">
+          ${fieldHtml('Proprietà', hydrant.proprietario)}
+          ${fieldHtml('Custodia', hydrant.custodia)}
+          ${fieldHtml('Referente', [hydrant.referente, hydrant.contatto].filter(Boolean).join(' — '))}
+          ${fieldHtml('Diametro tubazione', hydrant.diametroTubazioneMm != null ? `${hydrant.diametroTubazioneMm} mm` : null)}
+          ${fieldHtml('Provvedimento', hydrant.provvedimento, true)}
+        </div>` : ''}
 
         <div class="section-title">Aggiorna stato (locale, offline)</div>
         <div class="status-edit-row">
