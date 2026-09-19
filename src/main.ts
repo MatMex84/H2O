@@ -8,6 +8,11 @@ import { Topbar } from './ui/topbar';
 import { BottomSheet } from './ui/bottomsheet';
 import { NearbyDrawer } from './ui/nearbylist';
 import { Bottombar } from './ui/searchbar';
+import { findComune } from './geo/comuni';
+import { normalize } from './utils/text';
+
+/** Livello di zoom usato quando la mappa si sposta su un comune (nessun idrante trovato lì). */
+const COMUNE_ZOOM = 12;
 
 const NEARBY_LIMIT = 60;
 
@@ -133,11 +138,15 @@ function withDistance(list: Hydrant[]): HydrantWithDistance[] {
   }));
 }
 
-function normalize(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function withDistanceFrom(list: Hydrant[], lon: number, lat: number): HydrantWithDistance[] {
+  return list.map((h) => ({
+    ...h,
+    distanceMeters: haversineMeters(lon, lat, h.lon, h.lat),
+    bearingDeg: bearingDeg(lon, lat, h.lon, h.lat)
+  }));
 }
 
-function handleSearch(query: string): void {
+async function handleSearch(query: string): Promise<void> {
   if (query === '') {
     if (nearbyDrawer.isOpen) renderNearby();
     return;
@@ -151,11 +160,36 @@ function handleSearch(query: string): void {
     if (h.provincia && normalize(h.provincia).includes(q)) return true;
     return false;
   });
-  const withDist = withDistance(matches)
-    .sort((a, b) => a.distanceMeters - b.distanceMeters)
-    .slice(0, NEARBY_LIMIT);
-  nearbyDrawer.setTitle(`Risultati per "${query}" (${matches.length})`);
-  nearbyDrawer.render(withDist);
+
+  if (matches.length > 0) {
+    const withDist = withDistance(matches)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, NEARBY_LIMIT);
+    nearbyDrawer.setTitle(`Risultati per "${query}" (${matches.length})`);
+    nearbyDrawer.render(withDist);
+    nearbyDrawer.open();
+    return;
+  }
+
+  // Nessun idrante corrisponde alla ricerca: se la query è il nome di un
+  // comune (censito ma senza idranti nel dataset, o scritto in modo diverso
+  // da come compare sugli idranti vicini), sposta comunque la mappa lì e
+  // mostra gli idranti più vicini a quel punto come report di prossimità.
+  const comune = await findComune(query);
+  if (comune) {
+    map.flyTo(comune.lon, comune.lat, COMUNE_ZOOM);
+    const nearest = withDistanceFrom(hydrants, comune.lon, comune.lat)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, NEARBY_LIMIT);
+    const comuneLabel = comune.p ? `${comune.n} (${comune.p})` : comune.n;
+    nearbyDrawer.setTitle(`Nessun idrante a ${comuneLabel} — idranti più vicini`);
+    nearbyDrawer.render(nearest);
+    nearbyDrawer.open();
+    return;
+  }
+
+  nearbyDrawer.setTitle(`Risultati per "${query}" (0)`);
+  nearbyDrawer.render([]);
   nearbyDrawer.open();
 }
 
