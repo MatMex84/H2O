@@ -15,6 +15,9 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --bar-height: 56px;
   --touch-min: 48px;
+  /* Altezza reale di #bottombar (padding 8px sopra + touch-min 48px + padding
+     8px sotto + safe-area): usata per non coprirlo mai con drawer/sheet. */
+  --bottombar-height: calc(8px + var(--touch-min) + 8px + var(--safe-bottom));
 }
 
 * { box-sizing: border-box; }
@@ -399,12 +402,18 @@ html, body {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--bottombar-height);
   top: 15%;
   background: var(--color-surface);
   border-radius: 18px 18px 0 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
-  transform: translateY(105%);
+  /* In vh (non in %): una traslazione in % è relativa all'altezza del box
+     stesso, che ora è più corto (si ferma sopra #bottombar) — con una %
+     rischiava di non spostarlo abbastanza per liberare del tutto l'area
+     della barra di ricerca quando "chiuso". In vh la traslazione è invece
+     relativa all'altezza del viewport, quindi resta valida a prescindere
+     dall'altezza del drawer. */
+  transform: translateY(100vh);
   transition: transform 0.25s ease;
   z-index: 35;
   display: flex;
